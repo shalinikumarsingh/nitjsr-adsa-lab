@@ -1,0 +1,72 @@
+import itertools
+import random
+import time
+import matplotlib.pyplot as plt
+
+
+def generate_graph(n):
+    graph = [[0 if i == j else random.randint(1, 100) for j in range(n)] for i in range(n)]
+    return graph
+
+
+def tsp_bruteforce(graph):
+    n = len(graph)
+    vertices = list(range(1, n))
+    min_path = float('inf')
+
+    for perm in itertools.permutations(vertices):
+        current_pathweight = 0
+        k = 0
+        for j in perm:
+            current_pathweight += graph[k][j]
+            k = j
+        current_pathweight += graph[k][0]
+        min_path = min(min_path, current_pathweight)
+    return min_path
+
+
+def tsp_nearest_neighbor(graph):
+    n = len(graph)
+    visited = [False] * n
+    path = [0]
+    visited[0] = True
+    total_cost = 0
+    current = 0
+
+    for _ in range(n - 1):
+        next_city = min([(graph[current][j], j) for j in range(n) if not visited[j]], key=lambda x: x[0])[1]
+        total_cost += graph[current][next_city]
+        visited[next_city] = True
+        path.append(next_city)
+        current = next_city
+
+    total_cost += graph[current][0]  # Return to start
+    return total_cost
+
+
+sizes = [10, 20, 40, 60, 100]
+times = []
+
+for n in sizes:
+    graph = generate_graph(n)
+    start = time.time()
+
+    if n <= 10:
+        tsp_bruteforce(graph)
+    else:
+        tsp_nearest_neighbor(graph)
+
+    end = time.time()
+    times.append(end - start)
+    print(f"Graph size: {n} nodes --> Execution time: {end - start:.4f} sec")
+
+# ------------------------
+# 5. Plot results
+# ------------------------
+plt.figure(figsize=(8,5))
+plt.plot(sizes, times, marker='o', linestyle='-', color='b')
+plt.title("TSP Problem Size vs Execution Time")
+plt.xlabel("Number of Nodes")
+plt.ylabel("Execution Time (seconds)")
+plt.grid(True)
+plt.show()
