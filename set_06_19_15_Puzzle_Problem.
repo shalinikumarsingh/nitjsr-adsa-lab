@@ -1,0 +1,114 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <math.h>
+
+#define N 4
+#define HEAP_CAP 10000
+
+typedef struct Node {
+    int p[N][N];
+    int x, y;           // blank pos
+    int g;              // level (cost so far)
+    int h;              // heuristic
+    struct Node* parent;
+} Node;
+
+int goal[N][N] = {
+    {1,2,3,4},{5,6,7,8},{9,10,11,12},{13,14,15,0}
+};
+int dr[] = {1,-1,0,0}, dc[] = {0,0,-1,1};
+
+int manhattan(int p[N][N]) {
+    int s=0;
+    for(int i=0;i<N;i++) for(int j=0;j<N;j++){
+        int v=p[i][j];
+        if(v){
+            int tx=(v-1)/N, ty=(v-1)%N;
+            s += abs(i-tx)+abs(j-ty);
+        }
+    }
+    return s;
+}
+
+Node* make_node(int p[N][N], int x,int y,int nx,int ny,int g,Node* par){
+    Node* n = malloc(sizeof(Node));
+    memcpy(n->p,p,sizeof n->p);
+    int tmp = n->p[x][y]; n->p[x][y]=n->p[nx][ny]; n->p[nx][ny]=tmp;
+    n->x=nx; n->y=ny; n->g=g; n->parent=par; n->h = manhattan(n->p);
+    return n;
+}
+
+void printP(int p[N][N]){
+    for(int i=0;i<N;i++){ 
+        for(int j=0;j<N;j++) printf(p[i][j] ? "%2d " : "   ", p[i][j]);
+        printf("\n");
+    }
+    printf("\n");
+}
+void printPath(Node* n){ if(!n) return; printPath(n->parent); printP(n->p); }
+
+typedef struct { Node* a[HEAP_CAP]; int sz; } MinHeap;
+void swap(Node** x,Node** y){ Node* t=*x; *x=*y; *y=t; }
+int f(Node* n){ return n->g + n->h; }
+
+void push(MinHeap* h, Node* n){
+    int i = h->sz; h->a[h->sz++] = n;
+    while(i && f(h->a[i]) < f(h->a[(i-1)/2])){
+        swap(&h->a[i], &h->a[(i-1)/2]);
+        i=(i-1)/2;
+    }
+}
+Node* pop(MinHeap* h){
+    if(h->sz==0) return NULL;
+    Node* out = h->a[0];
+    h->a[0]=h->a[--h->sz];
+    int i=0;
+    while(1){
+        int l=2*i+1, r=2*i+2, s=i;
+        if(l<h->sz && f(h->a[l])<f(h->a[s])) s=l;
+        if(r<h->sz && f(h->a[r])<f(h->a[s])) s=r;
+        if(s==i) break;
+        swap(&h->a[i], &h->a[s]); i=s;
+    }
+    return out;
+}
+
+int solved(int a[N][N]){ return memcmp(a,goal,sizeof goal)==0; }
+
+void solve(int start[N][N], int sx,int sy){
+    MinHeap H = {.sz=0};
+    Node* root = malloc(sizeof(Node));
+    memcpy(root->p,start,sizeof root->p); root->x=sx; root->y=sy; root->g=0; root->parent=NULL; root->h = manhattan(start);
+    push(&H, root);
+    while(H.sz){
+        Node* cur = pop(&H);
+        if(solved(cur->p)){
+            printf("Solution found in %d moves:\n\n", cur->g);
+            printPath(cur);
+            return;
+        }
+        for(int k=0;k<4;k++){
+            int nx=cur->x+dr[k], ny=cur->y+dc[k];
+            if(nx>=0 && nx<N && ny>=0 && ny<N){
+                Node* child = make_node(cur->p, cur->x, cur->y, nx, ny, cur->g+1, cur);
+                push(&H, child);
+            }
+        }
+    }
+    printf("No solution found.\n");
+}
+
+int main(){
+    int puzzle[N][N] = {
+        {1,2,3,4},
+        {5,6,0,8},
+        {9,10,7,12},
+        {13,14,11,15}
+    };
+    int sx=0, sy=0;
+    for(int i=0;i<N;i++) for(int j=0;j<N;j++) if(puzzle[i][j]==0){ sx=i; sy=j; }
+    printf("Initial state:\n\n"); printP(puzzle);
+    solve(puzzle, sx, sy);
+    return 0;
+}
