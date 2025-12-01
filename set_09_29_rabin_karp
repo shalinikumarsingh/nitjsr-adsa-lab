@@ -1,0 +1,64 @@
+#include <stdio.h>
+#include <string.h>
+
+#define d 256        // Number of characters in input alphabet
+#define q 101        // A prime number for hashing
+
+// Rabin-Karp Pattern Searching Algorithm
+void rabinKarp(char pattern[], char text[]) {
+    int M = strlen(pattern);
+    int N = strlen(text);
+
+    int i, j;
+    int p = 0;   // Hash value for pattern
+    int t = 0;   // Hash value for text window
+    int h = 1;
+
+    // The value of h = pow(d, M-1) % q
+    for (i = 0; i < M - 1; i++)
+        h = (h * d) % q;
+
+    // Calculate hash values of pattern and first window of text
+    for (i = 0; i < M; i++) {
+        p = (d * p + pattern[i]) % q;
+        t = (d * t + text[i]) % q;
+    }
+
+    // Slide the pattern over text
+    for (i = 0; i <= N - M; i++) {
+        
+        // If hash values match, then check character by character
+        if (p == t) {
+            for (j = 0; j < M; j++) {
+                if (text[i + j] != pattern[j])
+                    break;
+            }
+
+            if (j == M)
+                printf("Pattern found at index %d\n", i);
+        }
+
+        // Compute hash value for next window
+        if (i < N - M) {
+            t = (d * (t - text[i] * h) + text[i + M]) % q;
+
+            // Make sure hash value is positive
+            if (t < 0)
+                t = t + q;
+        }
+    }
+}
+
+int main() {
+    char text[100], pattern[100];
+
+    printf("Enter text: ");
+    gets(text);
+
+    printf("Enter pattern: ");
+    gets(pattern);
+
+    rabinKarp(pattern, text);
+
+    return 0;
+}
